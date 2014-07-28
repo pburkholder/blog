@@ -1,12 +1,4 @@
-TODO: 
-
-Does depsolver still have timeout issues?  CHEF-3921 addressed this and resolved it by reverting from the Erlang depsolver in 11.0 back to the GECODE depsolver in 11.1 (https://github.com/opscode/omnibus-chef-server/blob/11.1.0/CHANGELOG.md).  However, at $WORK we were still seeing 412 timeouts when 
-
-
-Are there alternatives to 'knife cookbook clean'? No. https://github.com/pburkholder/knife-cleanup forked from 
-https://github.com/mdxp/knife-cleanup.... And, no I don't see any. 
-
-# Chef depsolver timeouts (412) and the `knife cleanup versions` plugin #
+## part one
 
 In a Chef development group with a high rate of cookbook churn, you may eventually find that your Chef server is timing out as the dependency solver (depsolver) works out the correct cookbook version to send to clients based on environment constraints and cookbook constraints. This gets ugly pretty quickly, since the Chef workers tied up doing depsolving aren't available for servicing other clients. At $WORK, we'd see lots of failed chef client runs, and usually at the most inconvenient of times. 
 
@@ -27,7 +19,7 @@ And when `bar` has versions 1.1.0, 1.1.1, 1.1.2, and `baz` has all its versions,
 
 In a pinch, you can throw more resources at the problem, increasing the timeouts and the threads available to the chef server. This is only a short-term stop-gap. As you update more cookbooks, you'll soon be back to your earlier pain.
 
-Good luck finding where to change those settings, as the `omnibus-chef-server` project (https://github.com/opscode/omnibus-chef-server) has an attribute defined for `default['chef_server']['erchef']['depsolver_timeout']`, but that attibute isn't used anywhere. 
+Good luck finding where to change those settings, as the `omnibus-chef-server` project (https://github.com/opscode/omnibus-chef-server) has an attribute defined for `default['chef_server']['erchef']['depsolver_timeout']`, but that attibute isn't used anywhere &star;. 
 
 What you need to do is edit `/var/opt/chef-server/erchef/etc/app.config` to change the `depsolver_timeout` (under the `chef_objects` key) and the `max_count` under the `pooler` key, as show in this diff where the timeout goes to 10,000 ms, and the worker count is bumped to 12:
 
@@ -58,10 +50,16 @@ Then restart the chef-server.
 
 In the next part, I'll cover how to fix this with a safe cookbook clean-up.
 
+&star; I submitted a fix to the missing attribute problem with this pull request: https://github.com/opscode/omnibus-chef-server/pull/79
+
+## part two
+
+
+
+## part three
 
 How to apply constraints in depsolver-friendlier way
 
-How to clean up cookbooks.
 
 Why does Chef not cache the depsolver results?
 See also: http://railsware.com/blog/2013/02/21/chef-dos-and-donts/ (or not)
@@ -80,3 +78,11 @@ removes depsolver and adds depselector, git => 'git://github.com/opscode/dep-sel
   	81 	+ solution = selector.find_solution(run_list, all_versions)
 
 removes depsolver.git and adds pooler.git
+
+
+* Why does the depsolver not cache results?
+  * The inputs are ....
+* Confused by the _right way_ to do version numbering?  All questions answered at http://semver.orb
+* Didn't Opscode/GetChef fix these depsolver timeout issues in 11.X? 
+  * I don't think so.  11.0 introduced an Erlang-based depsolver, then that was rolled back in 11.TKTK
+* What errors are indicative of the depsolver exhaustion issue?
